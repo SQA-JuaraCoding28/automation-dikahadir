@@ -1,0 +1,39 @@
+# Maven build output
+target/
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+*.iws
+*.ipr
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+.env
+*.env
+.env.local
+.env.*.local
+
+# WebDriverManager cache
+.wdm/
+
+# Logs (individual run logs are ephemeral — archives go in target/)
+*.log
