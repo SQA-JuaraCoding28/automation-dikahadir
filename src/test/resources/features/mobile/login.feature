@@ -9,7 +9,7 @@ Feature: Login to Hadir Mobile Mirroring Panel
 
   @smoke @positive
   Scenario: Successful login with valid credentials
-    When user logs in with valid mobile credentials
+    When user logs in to mobile with email "hadirsqa1@gmail.com" and password "SQA@Hadir12345"
     Then mobile user should be redirected to the dashboard
 
   @negative
