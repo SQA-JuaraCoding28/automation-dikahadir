@@ -47,12 +47,6 @@ public class MobileLoginSteps {
     // WHEN
     // =========================================================================
 
-    @When("user logs in with valid mobile credentials")
-    public void userLogsInWithValidMobileCredentials() {
-        logger.info("Logging in to mobile panel with valid credentials");
-        loginPage().doLogin(TestData.validEmail(), TestData.validPassword());
-    }
-
     @When("user logs in to mobile with email {string} and password {string}")
     public void userLogsInToMobileWithEmailAndPassword(String email, String password) {
         logger.info("Attempting mobile login with email: '{}'", email);
