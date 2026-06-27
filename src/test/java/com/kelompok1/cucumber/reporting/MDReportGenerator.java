@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,9 +12,10 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,7 +44,6 @@ public class MDReportGenerator {
                 return;
             }
 
-            // Strip BOM if present
             if (content.charAt(0) == '\uFEFF') {
                 content = content.substring(1);
             }
@@ -57,20 +58,18 @@ public class MDReportGenerator {
             JSONArray features = new JSONArray(trimmed);
             System.out.println("[SIT MD] Parsed " + features.length() + " feature(s)");
 
-            StringBuilder md = new StringBuilder();
-            md.append("# SIT Report — ").append(capitalize(platform)).append("\n\n");
-            md.append("| Generated | ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append(" |\n");
-            md.append("| Platform | ").append(capitalize(platform)).append(" |\n");
-            md.append("| Total Features | ").append(features.length()).append(" |\n\n");
+            // Load platform test data for inference
+            Properties testDataProps = loadTestDataProperties(platform);
 
+            StringBuilder md = new StringBuilder();
             md.append("| Test Case ID | Module | Test Scenario | Type | Platform | Preconditions | Test Data | Test Step | Expected Result | Actual Result | Status | Note | Evidence |\n");
             md.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
 
-            int tcCounter = 1;
+            // Track module counters for TC ID numbering
+            Map<String, Integer> moduleCounters = new LinkedHashMap<>();
 
             for (int f = 0; f < features.length(); f++) {
                 JSONObject feature = features.getJSONObject(f);
-                String module = feature.optString("name", "Unnamed");
                 JSONArray elements = feature.optJSONArray("elements");
                 if (elements == null) continue;
 
@@ -83,23 +82,34 @@ public class MDReportGenerator {
                     String scenarioName = element.optString("name", "");
                     List<String> tags = extractTags(element.optJSONArray("tags"));
 
+                    // Module from tag (e.g., @login → "Login")
+                    String module = resolveModule(tags);
+                    if (module.isEmpty()) {
+                        // Fallback: first word of feature name
+                        module = feature.optString("name", "Unknown").split("\\s+")[0];
+                    }
+
+                    // TC ID: TC_MODULE_001
+                    int counter = moduleCounters.getOrDefault(module, 0) + 1;
+                    moduleCounters.put(module, counter);
+                    String tcId = "TC_" + module.toUpperCase() + "_" + String.format("%03d", counter);
+
                     String type = resolveType(tags);
                     String plat = resolvePlatform(tags, platform);
 
                     JSONArray steps = element.optJSONArray("steps");
                     if (steps == null) steps = new JSONArray();
 
-                    String testSteps = extractTestSteps(steps);
-                    String testData = extractTestData(steps);
-                    String expectedResult = extractExpectedResult(steps);
+                    // Remove keywords from steps
+                    String testSteps = extractTestStepsNoKeywords(steps);
+                    String testData = extractTestData(steps, testDataProps, scenarioName);
+                    String expectedResult = extractExpectedResultNoKeywords(steps);
                     String status = determineStatus(steps);
                     String errorMsg = extractErrorMessage(steps);
 
                     String actualResult = "passed".equalsIgnoreCase(status) ? "As expected" : errorMsg;
                     String note = "passed".equalsIgnoreCase(status) ? "" : errorMsg;
                     String evidence = "failed".equalsIgnoreCase(status) ? "Screenshot attached" : "";
-
-                    String tcId = "TC-" + String.format("%03d", tcCounter++);
 
                     md.append("| ").append(esc(tcId))
                       .append(" | ").append(esc(module))
@@ -128,6 +138,22 @@ public class MDReportGenerator {
         }
     }
 
+    private static Properties loadTestDataProperties(String platform) {
+        String fileName = "test-data-" + platform.toLowerCase() + ".properties";
+        Properties props = new Properties();
+        try (InputStream in = MDReportGenerator.class.getClassLoader().getResourceAsStream(fileName)) {
+            if (in != null) {
+                props.load(in);
+                System.out.println("[SIT MD] Loaded test data: " + fileName);
+            } else {
+                System.err.println("[SIT MD] Test data file not found on classpath: " + fileName);
+            }
+        } catch (IOException e) {
+            System.err.println("[SIT MD] Failed to load test data: " + e.getMessage());
+        }
+        return props;
+    }
+
     private static String readJson(Path path) {
         try {
             if (!Files.exists(path)) {
@@ -148,7 +174,7 @@ public class MDReportGenerator {
         for (int i = 0; i < elements.length(); i++) {
             JSONObject el = elements.getJSONObject(i);
             if ("background".equals(el.optString("type"))) {
-                return extractSteps(el.optJSONArray("steps"));
+                return extractStepsNoKeywords(el.optJSONArray("steps"));
             }
         }
         return "";
@@ -161,6 +187,23 @@ public class MDReportGenerator {
             list.add(tags.getJSONObject(i).optString("name", ""));
         }
         return list;
+    }
+
+    private static String resolveModule(List<String> tags) {
+        for (String tag : tags) {
+            // Skip meta tags
+            if (tag.equals("@smoke") || tag.equals("@positive") || tag.equals("@negative")
+                || tag.equals("@happy-path") || tag.equals("@edge-case")
+                || tag.equals("@regression") || tag.equals("@wip")
+                || tag.equals("@web") || tag.equals("@mobile")) {
+                continue;
+            }
+            // First non-meta tag is the module: @login → "Login"
+            if (tag.startsWith("@")) {
+                return capitalize(tag.substring(1));
+            }
+        }
+        return "";
     }
 
     private static String resolveType(List<String> tags) {
@@ -177,56 +220,60 @@ public class MDReportGenerator {
         return capitalize(fallback);
     }
 
-    private static String extractSteps(JSONArray steps) {
+    private static String extractStepsNoKeywords(JSONArray steps) {
+        if (steps == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < steps.length(); i++) {
+            JSONObject step = steps.getJSONObject(i);
+            String name = step.optString("name", "");
+            if (sb.length() > 0) sb.append("<br>");
+            sb.append(name);
+        }
+        return sb.toString();
+    }
+
+    private static String extractTestStepsNoKeywords(JSONArray steps) {
         if (steps == null) return "";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < steps.length(); i++) {
             JSONObject step = steps.getJSONObject(i);
             String keyword = step.optString("keyword", "").trim();
             String name = step.optString("name", "");
-            if (sb.length() > 0) sb.append("<br>");
-            sb.append(keyword).append(" ").append(name);
-        }
-        return sb.toString();
-    }
-
-    private static String extractTestSteps(JSONArray steps) {
-        if (steps == null) return "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < steps.length(); i++) {
-            JSONObject step = steps.getJSONObject(i);
-            String keyword = step.optString("keyword", "").trim();
             if ("Then".equalsIgnoreCase(keyword)) break;
             if (sb.length() > 0) sb.append("<br>");
-            sb.append(keyword).append(" ").append(step.optString("name", ""));
+            sb.append(name);
         }
         return sb.toString();
     }
 
-    private static String extractExpectedResult(JSONArray steps) {
+    private static String extractExpectedResultNoKeywords(JSONArray steps) {
         if (steps == null) return "";
         StringBuilder sb = new StringBuilder();
         boolean foundThen = false;
         for (int i = 0; i < steps.length(); i++) {
             JSONObject step = steps.getJSONObject(i);
             String keyword = step.optString("keyword", "").trim();
+            String name = step.optString("name", "");
             if ("Then".equalsIgnoreCase(keyword)) foundThen = true;
             if (foundThen) {
                 if (sb.length() > 0) sb.append("<br>");
-                sb.append(keyword).append(" ").append(step.optString("name", ""));
+                sb.append(name);
             }
         }
         return sb.toString();
     }
 
-    private static String extractTestData(JSONArray steps) {
+    private static String extractTestData(JSONArray steps, Properties testDataProps, String scenarioName) {
         if (steps == null) return "";
-        Set<String> items = new LinkedHashSet<>();
+        List<String> items = new ArrayList<>();
+        StringBuilder allStepText = new StringBuilder();
         String lastRealKeyword = "";
+
         for (int i = 0; i < steps.length(); i++) {
             JSONObject step = steps.getJSONObject(i);
             String keyword = step.optString("keyword", "").trim();
             String name = step.optString("name", "");
+            allStepText.append(" ").append(keyword).append(" ").append(name);
 
             if (!"And".equalsIgnoreCase(keyword) && !"But".equalsIgnoreCase(keyword)) {
                 lastRealKeyword = keyword;
@@ -235,12 +282,55 @@ public class MDReportGenerator {
             if ("Given".equalsIgnoreCase(lastRealKeyword) || "When".equalsIgnoreCase(lastRealKeyword)) {
                 Matcher m = QUOTED_STRING.matcher(name);
                 while (m.find()) {
-                    String val = m.group(1).trim();
-                    if (!val.isEmpty()) items.add(val);
+                    String val = m.group(1);
+                    items.add(val.isEmpty() ? "(empty)" : val);
                 }
             }
         }
-        return items.isEmpty() ? "See test-data.properties" : String.join(", ", items);
+
+        // If we found inline quoted values, use them
+        if (!items.isEmpty()) {
+            return String.join(", ", items);
+        }
+
+        // No inline data — infer from properties based on scenario context
+        String lowerScenario = scenarioName.toLowerCase();
+        String lowerSteps = allStepText.toString().toLowerCase();
+        StringBuilder inferred = new StringBuilder();
+
+        boolean isLogin = lowerSteps.contains("login") || lowerSteps.contains("email") || lowerSteps.contains("password");
+
+        if (isLogin) {
+            boolean isValid = lowerScenario.contains("valid") || lowerSteps.contains("valid credentials");
+            boolean isEmpty = lowerScenario.contains("empty");
+
+            if (isValid && !isEmpty) {
+                appendProp(inferred, testDataProps, "user.valid.email", "Email");
+                appendProp(inferred, testDataProps, "user.valid.password", "Password");
+            } else if (isEmpty) {
+                appendLiteral(inferred, "Email: (empty)");
+                appendLiteral(inferred, "Password: (empty)");
+            }
+        }
+
+        if (inferred.length() > 0) {
+            return inferred.toString();
+        }
+
+        return "See test-data.properties";
+    }
+
+    private static void appendProp(StringBuilder sb, Properties props, String key, String label) {
+        String value = props.getProperty(key);
+        if (value != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(label).append(": ").append(value);
+        }
+    }
+
+    private static void appendLiteral(StringBuilder sb, String text) {
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(text);
     }
 
     private static String determineStatus(JSONArray steps) {
