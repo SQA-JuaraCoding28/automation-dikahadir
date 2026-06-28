@@ -14,7 +14,7 @@ import com.kelompok1.cucumber.reporting.MDReportGenerator;
  *
  * Platform is set in a static initializer so it is available before
  * AbstractTestNGCucumberTests initializes the Cucumber runtime.
- * 
+ *
  * @BeforeClass fires too late — after the runtime is already built.
  *
  *              Run this runner only:
@@ -42,7 +42,7 @@ public class WebTestRunner extends AbstractTestNGCucumberTests {
     }
 
     @Override
-    @DataProvider(parallel = true)
+    @DataProvider(parallel = false)
     public Object[][] scenarios() {
         return super.scenarios();
     }
