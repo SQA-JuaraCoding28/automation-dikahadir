@@ -84,6 +84,7 @@ public class AbsensiMasukSteps {
 
         if (absensiPage().isCameraPagePresent()) {
             logger.info("Camera page detected — taking photo...");
+            absensiPage().dismissPasswordPopupIfPresent();
             Assert.assertTrue(absensiPage().isCameraButtonDisplayed(),
                 "Camera button should be visible");
             absensiPage().clickCameraButton();
