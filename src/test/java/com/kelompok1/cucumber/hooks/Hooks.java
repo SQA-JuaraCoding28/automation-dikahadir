@@ -21,6 +21,8 @@ import com.kelompok1.cucumber.core.DriverManager;
 import com.kelompok1.cucumber.core.PlatformContext;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Cucumber Hooks — WebDriver lifecycle management.
@@ -89,6 +91,16 @@ public class Hooks {
                 chromeOptions.addArguments("--use-fake-ui-for-media-stream");
                 chromeOptions.addArguments("--use-fake-device-for-media-stream");
                 chromeOptions.addArguments("--disable-features=MediaStreamTrackWebSpeech");
+
+                // Disable password leak detection / breach warnings
+                Map<String, Object> prefs = new HashMap<>();
+                prefs.put("profile.password_manager_leak_detection", false);
+                prefs.put("credentials_enable_service", false);
+                prefs.put("profile.password_manager_enabled", false);
+                chromeOptions.setExperimentalOption("prefs", prefs);
+
+                // Also disable related Chrome features outright
+                chromeOptions.addArguments("--disable-features=PasswordLeakDetection,SafeBrowsing,PasswordManagerOnboarding");
                 return new ChromeDriver(chromeOptions);
 
             case "firefox":

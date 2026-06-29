@@ -176,17 +176,36 @@ public class AbsensiPage extends BasePage {
     }
 
     public void selectTipeAbsenWfh() {
-        click(tipeAbsenDropdown);
+        openTipeAbsenDropdown();
         wait.until(ExpectedConditions.visibilityOfElementLocated(tipeAbsenListbox));
         wait.until(ExpectedConditions.elementToBeClickable(tipeAbsenOptionWfh)).click();
         logger.info("Selected Tipe Absen: Work From Home");
     }
 
     public void selectTipeAbsenWfo() {
-        click(tipeAbsenDropdown);
+        openTipeAbsenDropdown();
         wait.until(ExpectedConditions.visibilityOfElementLocated(tipeAbsenListbox));
         wait.until(ExpectedConditions.elementToBeClickable(tipeAbsenOptionWfo)).click();
         logger.info("Selected Tipe Absen: Work From Office");
+    }
+
+    private void openTipeAbsenDropdown() {
+        WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(tipeAbsenDropdown));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", dropdown);
+        try {
+            dropdown.click();
+        } catch (Exception e) {
+            logger.warn("Regular click on Tipe Absen dropdown failed, trying JS click...");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", dropdown);
+        }
+
+        // MUI sometimes needs the click to fully register before portal renders
+        try {
+            shortWait.until(ExpectedConditions.visibilityOfElementLocated(tipeAbsenListbox));
+        } catch (Exception e) {
+            logger.warn("Listbox didn't appear on first attempt, retrying click...");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", dropdown);
+        }
     }
 
     public String getSelectedTipeAbsen() {
@@ -235,9 +254,14 @@ public class AbsensiPage extends BasePage {
         typeText(noteFieldPulang, note);
     }
 
+    public void waitForAbsenPulangFormToClose() {
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(timeOutField));
+    }
+
     public void submitAbsenPulang() {
         click(absenPulangSubmitButton);
         logger.info("Submitted Absen Pulang");
+        waitForAbsenPulangFormToClose();
     }
 
     public boolean isAbsenPulangFormDisplayed() {
@@ -352,16 +376,27 @@ public class AbsensiPage extends BasePage {
     }
 
     public void waitForClockOutTimeToAppear() {
+        String today = getTodayDateString();
         wait.until(driver -> {
             List<WebElement> entries = driver.findElements(historyEntries);
             if (entries.isEmpty()) return false;
-            try {
-                String timeText = entries.get(0).findElement(historyEntryTime).getText();
-                logger.debug("Waiting for clock-out time, current value: '{}'", timeText);
-                return !timeText.endsWith("- -");
-            } catch (Exception e) {
-                return false;
+
+            for (int i = 0; i < Math.min(5, entries.size()); i++) {
+                try {
+                    WebElement entry = entries.get(i);
+                    String dateText = entry.findElement(historyEntryDate).getText();
+                    if (!dateText.contains(today)) continue;
+
+                    String timeText = entry.findElement(historyEntryTime).getText();
+                    logger.debug("Checking entry [{}] date='{}' time='{}'", i, dateText, timeText);
+                    if (!timeText.endsWith("- -")) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    logger.debug("Entry [{}] not readable yet", i);
+                }
             }
+            return false;
         });
     }
 
