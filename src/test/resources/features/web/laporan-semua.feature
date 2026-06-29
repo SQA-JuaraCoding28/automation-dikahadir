@@ -1,4 +1,4 @@
-@laporan @regression @web
+@laporan @semua @regression @web
 Feature: Laporan Semua Page
   As an admin of Hadir
   I want to view and filter attendance reports on the Laporan Semua page
