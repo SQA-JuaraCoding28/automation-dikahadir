@@ -85,6 +85,10 @@ public class Hooks {
                 chromeOptions.addArguments("--no-sandbox");
                 chromeOptions.addArguments("--disable-dev-shm-usage");
                 chromeOptions.addArguments("--disable-gpu");
+                // Camera & location permission flags for absensi flow
+                chromeOptions.addArguments("--use-fake-ui-for-media-stream");
+                chromeOptions.addArguments("--use-fake-device-for-media-stream");
+                chromeOptions.addArguments("--disable-features=MediaStreamTrackWebSpeech");
                 return new ChromeDriver(chromeOptions);
 
             case "firefox":
