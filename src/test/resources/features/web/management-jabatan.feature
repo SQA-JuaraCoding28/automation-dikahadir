@@ -1,4 +1,4 @@
-@Jabatan @Management
+@jabatan @management @web @management
 Feature: Menu Jabatan
     As an authorized user
     I want to manage Job Level (Jabatan) data
