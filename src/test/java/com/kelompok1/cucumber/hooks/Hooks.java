@@ -18,9 +18,11 @@ import org.slf4j.LoggerFactory;
 
 import com.kelompok1.cucumber.core.ConfigReader;
 import com.kelompok1.cucumber.core.DriverManager;
+import com.kelompok1.cucumber.core.Platform;
 import com.kelompok1.cucumber.core.PlatformContext;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +40,8 @@ public class Hooks {
     private static final Logger logger = LoggerFactory.getLogger(Hooks.class);
 
     @Before(order = 0)
-    public void setUp() {
+    public void setUp(Scenario scenario) {
+        setPlatformForScenario(scenario);
         logger.info("Setting up WebDriver for platform: {}", PlatformContext.get());
 
         WebDriver driver = createWebDriver();
@@ -71,6 +74,33 @@ public class Hooks {
 
         logger.info("Quitting WebDriver for scenario: {}", scenario.getName());
         DriverManager.quit();
+        PlatformContext.clear();
+    }
+
+    private void setPlatformForScenario(Scenario scenario) {
+        Collection<String> tags = scenario.getSourceTagNames();
+        if (tags.contains("@web")) {
+            PlatformContext.set(Platform.WEB);
+            return;
+        }
+        if (tags.contains("@mobile")) {
+            PlatformContext.set(Platform.MOBILE);
+            return;
+        }
+
+        String uri = scenario.getUri().toString();
+        if (uri.contains("/features/web/")) {
+            PlatformContext.set(Platform.WEB);
+            return;
+        }
+        if (uri.contains("/features/mobile/")) {
+            PlatformContext.set(Platform.MOBILE);
+            return;
+        }
+
+        throw new IllegalStateException(
+            "Unable to determine platform for scenario '" + scenario.getName() + "'. " +
+            "Add @web or @mobile tag to the feature/scenario.");
     }
 
     private WebDriver createWebDriver() {

@@ -37,3 +37,5 @@ Thumbs.db
 
 # Logs (individual run logs are ephemeral — archives go in target/)
 *.log
+
+test-data/

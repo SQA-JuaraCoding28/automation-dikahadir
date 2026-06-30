@@ -81,13 +81,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Extent Reports -->
-        <dependency>
-            <groupId>com.aventstack</groupId>
-            <artifactId>extentreports</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-
         <!-- Apache POI for Excel files -->
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -114,20 +107,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Extent Reports -->
-        <dependency>
-            <groupId>com.aventstack</groupId>
-            <artifactId>extentreports</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-
-        <!-- Grasshopper Cucumber Extent Report Adapter -->
-        <dependency>
-            <groupId>tech.grasshopper</groupId>
-            <artifactId>extentreports-cucumber7-adapter</artifactId>
-            <version>1.14.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
