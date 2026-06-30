@@ -23,7 +23,7 @@ public class ImportStrukturUserPage extends BasePage {
         + " | //h1[contains(text(), 'Import')] | //h2[contains(text(), 'Import')]"
         + " | //*[contains(text(), 'Import Excel Struktur User')]");
 
-    private final By fileInput = By.id("selfie");
+    private final By fileInput = By.xpath("//input[@type='file' or @id='selfie']");
 
     private final By importButton = By.xpath(
         "//button[contains(@class, 'MuiButton-containedPrimary') and contains(text(), 'Import')]");
@@ -84,15 +84,18 @@ public class ImportStrukturUserPage extends BasePage {
      * Selenium can send keys to file inputs directly, bypassing the OS dialog.
      */
     public void uploadFile(String absoluteFilePath) {
-        WebElement input = driver.findElement(fileInput);
+        WebElement input = wait.until(ExpectedConditions.presenceOfElementLocated(fileInput));
 
-        // Make the input visible if it is hidden (common for styled file inputs)
+        // Make the input interactable if it is hidden (common for styled file inputs)
         try {
             JavascriptExecutor js = (JavascriptExecutor) driver;
             js.executeScript(
-                "arguments[0].style.display='block';"
+                "arguments[0].removeAttribute('hidden');"
+                + "arguments[0].style.display='block';"
                 + "arguments[0].style.visibility='visible';"
-                + "arguments[0].style.opacity='1';",
+                + "arguments[0].style.opacity='1';"
+                + "arguments[0].style.height='1px';"
+                + "arguments[0].style.width='1px';",
                 input);
         } catch (Exception e) {
             logger.warn("Could not make file input visible via JS: {}", e.getMessage());
@@ -103,14 +106,14 @@ public class ImportStrukturUserPage extends BasePage {
     }
 
     public String getFileInputValidationMessage() {
-        WebElement input = driver.findElement(fileInput);
+        WebElement input = wait.until(ExpectedConditions.presenceOfElementLocated(fileInput));
         String message = input.getAttribute("validationMessage");
         logger.info("File input validation message: '{}'", message);
         return message != null ? message : "";
     }
 
     public String getSelectedFileName() {
-        WebElement input = driver.findElement(fileInput);
+        WebElement input = wait.until(ExpectedConditions.presenceOfElementLocated(fileInput));
         String value = input.getAttribute("value");
         if (value != null && value.contains("\\")) {
             value = value.substring(value.lastIndexOf("\\") + 1);
@@ -141,7 +144,12 @@ public class ImportStrukturUserPage extends BasePage {
     }
 
     public boolean isFileInputDisplayed() {
-        return isPresent(fileInput);
+        try {
+            wait.until(ExpectedConditions.presenceOfElementLocated(fileInput));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // ── Alerts & Messages ─────────────────────────────────────────────────────
