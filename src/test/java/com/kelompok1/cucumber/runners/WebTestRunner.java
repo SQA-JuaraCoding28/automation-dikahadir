@@ -32,8 +32,7 @@ import com.kelompok1.cucumber.reporting.MDReportGenerator;
         "html:target/cucumber-reports/web/cucumber.html",
         "json:target/cucumber-reports/web/cucumber.json",
         "junit:target/cucumber-reports/web/cucumber.xml",
-        "timeline:target/cucumber-reports/web/timeline",
-        "com.aventstack.extentreports.cucumber.adapter.ExtentCucumberAdapter:"
+        "timeline:target/cucumber-reports/web/timeline"
     },
     monochrome = true,
     tags = "not @wip"
