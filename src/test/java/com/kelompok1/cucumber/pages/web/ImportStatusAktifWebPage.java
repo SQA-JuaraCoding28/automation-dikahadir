@@ -1,11 +1,8 @@
 package com.kelompok1.cucumber.pages.web;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
 import org.testng.Assert;
 
 import com.kelompok1.cucumber.pages.BasePage;
@@ -17,22 +14,14 @@ public class ImportStatusAktifWebPage extends BasePage {
     // ==========================================
     // LOKATOR ELEMENT
     // ==========================================
-    @FindBy(xpath = "//p[contains(text(), 'Import Status Aktif')] | //div[contains(text(), 'Import Excel Status Aktif')]")
-    private WebElement headerTitle;
-
-    @FindBy(id = "selfie")
-    private WebElement inputFile;
-
-    @FindBy(xpath = "//button[@type='submit' and contains(text(), 'Import')]")
-    private WebElement btnImport;
-
-    @FindBy(xpath = "//button[contains(text(), 'Download Template')]")
-    private WebElement btnDownloadTemplate;
+    private final By headerTitle = By.xpath("//p[contains(text(), 'Import Status Aktif')] | //div[contains(text(), 'Import Excel Status Aktif')]");
+    private final By inputFile = By.id("selfie");
+    private final By btnImport = By.xpath("//button[@type='submit' and contains(text(), 'Import')]");
+    private final By btnDownloadTemplate = By.xpath("//button[contains(text(), 'Download Template')]");
 
     public ImportStatusAktifWebPage(WebDriver driver) {
         super();
         this.driver = driver;
-        PageFactory.initElements(driver, this);
     }
 
     // ==========================================
@@ -59,7 +48,7 @@ public class ImportStatusAktifWebPage extends BasePage {
             wait.until(org.openqa.selenium.support.ui.ExpectedConditions.urlContains("import-status-aktif"));
             
             waitForVisibility(headerTitle);
-            Assert.assertTrue(headerTitle.isDisplayed(), "Header halaman Import Status Aktif tidak tampil!");
+            Assert.assertTrue(isDisplayed(headerTitle), "Header halaman Import Status Aktif tidak tampil!");
             System.out.println("Berhasil masuk ke halaman Import!");
         } catch (Exception e) {
             System.out.println("GAGAL MEMUAT HALAMAN IMPORT!");
@@ -71,16 +60,16 @@ public class ImportStatusAktifWebPage extends BasePage {
 
     public ImportStatusAktifWebPage verifyButtonsDisplayed() {
         waitForVisibility(btnImport);
-        Assert.assertTrue(btnImport.isDisplayed(), "Tombol Import tidak tampil!");
+        Assert.assertTrue(isDisplayed(btnImport), "Tombol Import tidak tampil!");
         
         waitForVisibility(btnDownloadTemplate);
-        Assert.assertTrue(btnDownloadTemplate.isDisplayed(), "Tombol Download Template tidak tampil!");
+        Assert.assertTrue(isDisplayed(btnDownloadTemplate), "Tombol Download Template tidak tampil!");
         return this;
     }
 
     public ImportStatusAktifWebPage clickImportWithoutFile() {
         waitForVisibility(btnImport);
-        btnImport.click();
+        click(btnImport);
         return this;
     }
 
@@ -88,9 +77,10 @@ public class ImportStatusAktifWebPage extends BasePage {
         // Karena input file menggunakan required="", browser akan menolak form submission.
         // Di Selenium, kita bisa cek attribute validationMessage dari input HTML5.
         waitForVisibility(inputFile);
-        String validationMsg = inputFile.getAttribute("validationMessage");
+        WebElement fileInput = findElement(inputFile);
+        String validationMsg = fileInput.getAttribute("validationMessage");
         
-        boolean isRejected = (validationMsg != null && !validationMsg.isEmpty()) || btnImport.isEnabled();
+        boolean isRejected = (validationMsg != null && !validationMsg.isEmpty()) || findElement(btnImport).isEnabled();
         Assert.assertTrue(isRejected, "Sistem seharusnya menolak import jika file belum dipilih!");
         return this;
     }

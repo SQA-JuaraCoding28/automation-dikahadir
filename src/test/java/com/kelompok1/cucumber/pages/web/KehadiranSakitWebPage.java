@@ -1,10 +1,9 @@
 package com.kelompok1.cucumber.pages.web;
 
+import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
 import org.testng.Assert;
 
 import com.kelompok1.cucumber.pages.BasePage;
@@ -16,38 +15,23 @@ public class KehadiranSakitWebPage extends BasePage {
     // ==========================================
     // 1. LOKATOR ELEMENT: MENU UTAMA
     // ==========================================
-    @FindBy(xpath = "//button[@aria-label='menu' and .//*[name()='svg' and contains(@class, 'feather-menu')]]")
-    private WebElement btnHamburgerMenu;
-    
-    @FindBy(xpath = "//a[contains(@href, '/laporan')] | //*[contains(translate(text(), 'LAPORAN', 'laporan'), 'laporan')]") 
-    private WebElement menuLaporan;
-
-    @FindBy(xpath = "//a[contains(@href, '/laporan/sakit')]") 
-    private WebElement menuSakit;
-
-    @FindBy(xpath = "//a[contains(@href, '/laporan/kehadiran')]") 
-    private WebElement menuKehadiran;
+    private final By btnHamburgerMenu = By.xpath("//button[@aria-label='menu' and .//*[name()='svg' and contains(@class, 'feather-menu')]]");
+    private final By menuLaporan = By.xpath("//a[contains(@href, '/laporan')] | //*[contains(translate(text(), 'LAPORAN', 'laporan'), 'laporan')]");
+    private final By menuSakit = By.xpath("//a[contains(@href, '/laporan/sakit')]");
+    private final By menuKehadiran = By.xpath("//a[contains(@href, '/laporan/kehadiran')]");
 
     // ==========================================
     // 2. LOKATOR ELEMENT: HALAMAN DATA
     // ==========================================
-    @FindBy(xpath = "//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::span][contains(text(), 'Sakit')]")
-    private WebElement headerSakit;
-
-    @FindBy(xpath = "//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::span][contains(text(), 'Kehadiran')]")
-    private WebElement headerKehadiran;
-
-    @FindBy(xpath = "//table")
-    private WebElement dataTable;
+    private final By headerSakit = By.xpath("//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::span][contains(text(), 'Sakit')]");
+    private final By headerKehadiran = By.xpath("//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::span][contains(text(), 'Kehadiran')]");
+    private final By dataTable = By.xpath("//table");
 
     // ==========================================
     // 3. LOKATOR ELEMENT: PENCARIAN (NEGATIVE)
     // ==========================================
-    @FindBy(xpath = "//input[@type='search' or contains(@placeholder, 'Cari') or contains(@placeholder, 'Search') or @id='search']")
-    private WebElement inputSearch;
-
-    @FindBy(xpath = "//tbody/tr")
-    private java.util.List<WebElement> tableRows;
+    private final By inputSearch = By.xpath("//input[@type='search' or contains(@placeholder, 'Cari') or contains(@placeholder, 'Search') or @id='search']");
+    private final By tableRows = By.xpath("//tbody/tr");
 
     // ==========================================
     // 4. CONSTRUCTOR
@@ -55,7 +39,6 @@ public class KehadiranSakitWebPage extends BasePage {
     public KehadiranSakitWebPage(WebDriver driver) {
         super();
         this.driver = driver; // Simpan instance driver untuk JavascriptExecutor
-        PageFactory.initElements(driver, this);
     }
 
     // ==========================================
@@ -168,8 +151,9 @@ public class KehadiranSakitWebPage extends BasePage {
 
     public KehadiranSakitWebPage searchData(String keyword) {
         waitForVisibility(inputSearch);
-        inputSearch.clear();
-        inputSearch.sendKeys(keyword + org.openqa.selenium.Keys.ENTER);
+        WebElement searchInput = findElement(inputSearch);
+        searchInput.clear();
+        searchInput.sendKeys(keyword + org.openqa.selenium.Keys.ENTER);
         return this;
     }
 
@@ -179,7 +163,7 @@ public class KehadiranSakitWebPage extends BasePage {
         
         int rowCount = 0;
         try {
-            rowCount = tableRows.size();
+            rowCount = findAll(tableRows).size();
         } catch (Exception e) {}
 
         boolean isEmpty = false;
@@ -190,7 +174,7 @@ public class KehadiranSakitWebPage extends BasePage {
         } 
         // Kasus 2: Tabel memiliki 1 baris, tapi baris itu adalah pesan "Data Kosong"
         else if (rowCount == 1) {
-            String rowText = tableRows.get(0).getText().toLowerCase();
+            String rowText = findAll(tableRows).get(0).getText().toLowerCase();
             if (rowText.contains("tidak") || rowText.contains("kosong") || 
                 rowText.contains("no data") || rowText.contains("belum") || 
                 rowText.contains("0") || rowText.length() < 5) {
