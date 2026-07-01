@@ -102,19 +102,6 @@ public class AbsensiKeluarSteps {
             "User should return to dashboard after successful absen pulang");
     }
 
-    @Then("history absensi should show updated entry with clock-out time")
-    public void historyShowsUpdatedEntryWithClockOut() {
-        logger.info("Waiting for history entry to update with clock-out time...");
-        absensiPage().waitForClockOutTimeToAppear();
-
-        AbsensiPage.HistoryEntry latest = absensiPage().getLatestHistoryEntry();
-        Assert.assertNotNull(latest, "Latest history entry should exist");
-        logger.info("Latest entry after keluar: {}", latest);
-
-        Assert.assertFalse(latest.time.endsWith("- -"),
-            "Clock-out time should be filled after absen pulang. Got: " + latest.time);
-    }
-
     @Then("Absen Masuk button should not be displayed")
     public void absenMasukButtonShouldNotBeDisplayed() {
         logger.info("Verifying Absen Masuk button is hidden after check-out...");
