@@ -84,7 +84,7 @@ public abstract class BasePage {
         wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
     }
 
-    protected String getCurrentUrl() {
+    public String getCurrentUrl() {
         return driver.getCurrentUrl();
     }
 
