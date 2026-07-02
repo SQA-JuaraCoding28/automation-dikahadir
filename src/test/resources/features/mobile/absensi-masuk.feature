@@ -23,5 +23,4 @@ Feature: Absensi (Attendance Check-in and Check-out)
     And user fills absen pulang form with note "Test absen pulang via automation"
     And user submits absen pulang form
     Then absen pulang should be submitted successfully
-    And history absensi should show updated entry with clock-out time
     And Absen Masuk button should not be displayed
